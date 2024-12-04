@@ -1,0 +1,373 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Healthcare Disparities Dashboard</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/tailwindcss/2.2.19/tailwind.min.css" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.7.0/chart.min.js"></script>
+    <style>
+        .chart-container {
+            position: relative;
+            height: 400px;
+            width: 100%;
+        }
+
+        .metric-card {
+            transition: transform 0.2s ease-in-out;
+        }
+
+        .metric-card:hover {
+            transform: translateY(-2px);
+        }
+
+        .filter-controls {
+            display: flex;
+            gap: 1rem;
+            margin-bottom: 1rem;
+        }
+
+        .filter-controls select {
+            padding: 0.5rem;
+            border-radius: 0.375rem;
+            border: 1px solid #e2e8f0;
+            background-color: white;
+        }
+
+        .filter-controls select:focus {
+            outline: none;
+            ring: 2px solid #4F46E5;
+        }
+
+        .loading {
+            position: relative;
+            overflow: hidden;
+        }
+
+        .loading::after {
+            content: "";
+            position: absolute;
+            top: 0;
+            right: 0;
+            bottom: 0;
+            left: 0;
+            background: linear-gradient(
+                90deg,
+                rgba(255, 255, 255, 0) 0%,
+                rgba(255, 255, 255, 0.8) 50%,
+                rgba(255, 255, 255, 0) 100%
+            );
+            animation: shimmer 1.5s infinite;
+        }
+
+        @keyframes shimmer {
+            0% { transform: translateX(-100%); }
+            100% { transform: translateX(100%); }
+        }
+
+        @media (max-width: 768px) {
+            .chart-container {
+                height: 300px;
+            }
+            
+            .filter-controls {
+                flex-direction: column;
+            }
+        }
+    </style>
+</head>
+<body class="bg-gray-100">
+    <div class="container mx-auto px-4 py-8">
+        <header class="mb-8">
+            <h1 class="text-3xl font-bold text-gray-800">Healthcare Disparities Dashboard</h1>
+            <p class="text-gray-600 mt-2">Analysis of Patient Outcomes Across Demographics</p>
+        </header>
+
+        <div class="grid grid-cols-1 gap-8">
+            <div class="bg-white p-6 rounded-lg shadow-lg">
+                <h2 class="text-xl font-semibold mb-4">Mortality Rate by Race/Ethnicity</h2>
+                <div class="chart-container">
+                    <canvas id="mortalityChart"></canvas>
+                </div>
+            </div>
+
+            <div class="bg-white p-6 rounded-lg shadow-lg">
+                <h2 class="text-xl font-semibold mb-4">Average SOFA Scores Over Time</h2>
+                <div class="filter-controls">
+                    <select id="sofaRaceFilter" class="p-2 border rounded">
+                        <option value="all">All Races</option>
+                        <option value="White">White</option>
+                        <option value="Black">Black</option>
+                        <option value="Hispanic">Hispanic</option>
+                        <option value="Asian">Asian</option>
+                    </select>
+                    <select id="sofaTimeRange" class="p-2 border rounded">
+                        <option value="7">Last 7 Days</option>
+                        <option value="30">Last 30 Days</option>
+                        <option value="90">Last 90 Days</option>
+                    </select>
+                </div>
+                <div class="chart-container">
+                    <canvas id="sofaChart"></canvas>
+                </div>
+            </div>
+
+            <div class="bg-white p-6 rounded-lg shadow-lg">
+                <h2 class="text-xl font-semibold mb-4">Length of Stay Distribution</h2>
+                <div class="chart-container">
+                    <canvas id="losChart"></canvas>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div class="bg-white p-6 rounded-lg shadow-lg metric-card">
+                    <h3 class="text-lg font-semibold mb-2">Average Time to Intervention</h3>
+                    <div id="timeToIntervention" class="text-3xl font-bold text-blue-600">
+                        Loading...
+                    </div>
+                </div>
+                <div class="bg-white p-6 rounded-lg shadow-lg metric-card">
+                    <h3 class="text-lg font-semibold mb-2">Average Comorbidity Score</h3>
+                    <div id="comorbidityScore" class="text-3xl font-bold text-green-600">
+                        Loading...
+                    </div>
+                </div>
+                <div class="bg-white p-6 rounded-lg shadow-lg metric-card">
+                    <h3 class="text-lg font-semibold mb-2">Resource Utilization</h3>
+                    <div id="resourceUtilization" class="text-3xl font-bold text-purple-600">
+                        Loading...
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Data processing utilities
+        function processCSVData(data) {
+            const rows = data.split('\n').filter(row => row.trim());
+            const headers = rows[0].split(',');
+            
+            return rows.slice(1).map(row => {
+                const values = row.split(',');
+                const rowData = {};
+                headers.forEach((header, index) => {
+                    rowData[header.trim()] = values[index];
+                });
+                return rowData;
+            });
+        }
+
+        function calculateMetricsByRace(data) {
+            const raceGroups = {};
+            
+            data.forEach(row => {
+                const race = row.race_ethnicity || 'Unknown';
+                if (!raceGroups[race]) {
+                    raceGroups[race] = {
+                        totalPatients: 0,
+                        deaths: 0,
+                        totalLOS: 0,
+                        totalSOFA: 0,
+                        totalComorbidity: 0,
+                        sofaReadings: []
+                    };
+                }
+                
+                raceGroups[race].totalPatients++;
+                raceGroups[race].deaths += parseInt(row.in_hospital_mortality) || 0;
+                raceGroups[race].totalLOS += parseFloat(row.los_hospital) || 0;
+                raceGroups[race].totalSOFA += parseFloat(row.sofa_past_overall_24hr) || 0;
+                raceGroups[race].totalComorbidity += parseFloat(row.comorbidity_score_value) || 0;
+                
+                if (row.sofa_past_overall_24hr) {
+                    raceGroups[race].sofaReadings.push({
+                        score: parseFloat(row.sofa_past_overall_24hr),
+                        date: new Date(row.datetime_hospital_admit)
+                    });
+                }
+            });
+            
+            return raceGroups;
+        }
+
+        function createMortalityChart(data) {
+            const ctx = document.getElementById('mortalityChart').getContext('2d');
+            const metrics = calculateMetricsByRace(data);
+            
+            const chartData = {
+                labels: Object.keys(metrics),
+                datasets: [{
+                    label: 'Mortality Rate (%)',
+                    data: Object.entries(metrics).map(([race, data]) => 
+                        ((data.deaths / data.totalPatients) * 100).toFixed(1)
+                    ),
+                    backgroundColor: 'rgba(54, 162, 235, 0.5)',
+                    borderColor: 'rgba(54, 162, 235, 1)',
+                    borderWidth: 1
+                }]
+            };
+            
+            return new Chart(ctx, {
+                type: 'bar',
+                data: chartData,
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'top',
+                        },
+                        title: {
+                            display: true,
+                            text: 'Mortality Rate by Race/Ethnicity'
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            title: {
+                                display: true,
+                                text: 'Mortality Rate (%)'
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        function createSOFAChart(data, selectedRace = 'all', timeRange = 30) {
+            const ctx = document.getElementById('sofaChart').getContext('2d');
+            const metrics = calculateMetricsByRace(data);
+            
+            const chartData = {
+                labels: Object.keys(metrics),
+                datasets: [{
+                    label: 'Average SOFA Score',
+                    data: Object.entries(metrics).map(([race, data]) => 
+                        (data.totalSOFA / data.totalPatients).toFixed(1)
+                    ),
+                    backgroundColor: 'rgba(75, 192, 192, 0.5)',
+                    borderColor: 'rgba(75, 192, 192, 1)',
+                    borderWidth: 1
+                }]
+            };
+            
+            return new Chart(ctx, {
+                type: 'line',
+                data: chartData,
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'top',
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            title: {
+                                display: true,
+                                text: 'Average SOFA Score'
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        function createLOSChart(data) {
+            const ctx = document.getElementById('losChart').getContext('2d');
+            const metrics = calculateMetricsByRace(data);
+            
+            const chartData = {
+                labels: Object.keys(metrics),
+                datasets: [{
+                    label: 'Average Length of Stay (Days)',
+                    data: Object.entries(metrics).map(([race, data]) => 
+                        (data.totalLOS / data.totalPatients).toFixed(1)
+                    ),
+                    backgroundColor: 'rgba(153, 102, 255, 0.5)',
+                    borderColor: 'rgba(153, 102, 255, 1)',
+                    borderWidth: 1
+                }]
+            };
+            
+            return new Chart(ctx, {
+                type: 'bar',
+                data: chartData,
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'top',
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            title: {
+                                display: true,
+                                text: 'Days'
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        function updateMetricCards(data) {
+            const metrics = calculateMetricsByRace(data);
+            let totalTime = 0;
+            let totalPatients = 0;
+            let totalComorbidity = 0;
+            
+            Object.values(metrics).forEach(group => {
+                totalPatients += group.totalPatients;
+                totalComorbidity += group.totalComorbidity;
+            });
+
+            document.getElementById('timeToIntervention').textContent = 
+                '4.2 hrs';  // This would be calculated based on actual intervention timestamps
+            document.getElementById('comorbidityScore').textContent = 
+                (totalComorbidity / totalPatients).toFixed(1);
+            document.getElementById('resourceUtilization').textContent = 
+                '83%';  // This would be calculated based on actual resource usage data
+        }
+
+        // Initialize dashboard
+        document.addEventListener('DOMContentLoaded', function() {
+            // Load and process the CSV data
+            const rawData = `race_ethnicity,in_hospital_mortality,los_hospital,sofa_past_overall_24hr,comorbidity_score_value
+White,0,5.8,4,3
+Black,1,6.4,5,4
+Hispanic,0,6.1,4,3
+Asian,0,5.5,3,2
+White,1,5.9,4,3`;  // Replace with actual CSV data
+            
+            const processedData = processCSVData(rawData);
+            
+            // Create initial charts
+            const mortalityChart = createMortalityChart(processedData);
+            const sofaChart = createSOFAChart(processedData);
+            const losChart = createLOSChart(processedData);
+            
+            // Update metric cards
+            updateMetricCards(processedData);
+            
+            // Add event listeners for filters
+            document.getElementById('sofaRaceFilter').addEventListener('change', function(e) {
+                sofaChart.destroy();
+                createSOFAChart(processedData, e.target.value);
+            });
+            
+            document.getElementById('sofaTimeRange').addEventListener('change', function(e) {
+                sofaChart.destroy();
+                createSOFAChart(processedData, null, parseInt(e.target.value));
+            });
+        });
+    </script>
+</body>
+</html>
