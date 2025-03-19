@@ -58,9 +58,6 @@ We've created [RealBias](https://akinbjoseph.github.io/oximeterfin/Finalbiaswebs
 ## Repository Contents
 
 - `analysis/`: Python code for data analysis and metric implementation
-- `visualization/`: Code for generating visualizations of our results
-- `website/`: Source code for the RealBias public awareness website
-- `docs/`: Additional documentation and research findings
 
 ## Recommendations for FDA
 
