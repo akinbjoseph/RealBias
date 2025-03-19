@@ -49,7 +49,7 @@ Our analysis reveals:
 
 ## Jupyter Notebook Documentation
 For a complete walkthrough of our analysis process with code, results, and detailed explanations, see our Jupyter notebook:
-[BOLD Dataset analysis.ipynb](docs/BOLD Dataset analysis.ipynb)
+[BOLD Dataset analysis.ipynb](https://github.com/akinbjoseph/RealBias/blob/67f6be893caf13e3f739b4520aa26a93d403c4d0/docs/BOLD%20Dataset%20analysis.ipynb)
 
 ## Public Awareness Website
 
