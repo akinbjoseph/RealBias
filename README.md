@@ -47,6 +47,10 @@ Our analysis reveals:
 
 3. The current ARMS metric inadequately detects clinically significant bias, particularly in the critical oxygen range
 
+## Jupyter Notebook Documentation
+For a complete walkthrough of our analysis process with code, results, and detailed explanations, see our Jupyter notebook:
+[BOLD Dataset analysis.ipynb](https://github.com/akinbjoseph/RealBias/blob/main/BOLD%20Dataset%20analysis.ipynb)
+
 ## Public Awareness Website
 
 We've created [RealBias](https://akinbjoseph.github.io/oximeterfin/Finalbiaswebsite.html), an interactive website that helps public audiences understand the impact of pulse oximeter bias. The site allows users to see how their demographic factors might affect their risk of receiving inaccurate readings.
