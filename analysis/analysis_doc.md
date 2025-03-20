@@ -92,7 +92,7 @@ The analysis code is organized into the following components:
 
 For a complete walkthrough of our analysis process with code, results, and detailed explanations, see our Jupyter notebook:
 
-**[BOLD Dataset analysis.ipynb](https://github.com/akinbjoseph/RealBias/blob/67f6be893caf13e3f739b4520aa26a93d403c4d0/docs/BOLD%20Dataset%20analysis.ipynb)**
+**[BOLD Dataset analysis.ipynb](https://github.com/akinbjoseph/RealBias/blob/e0abbb30ece48a963dd6a144a48cc2a0cf56feff/BOLD%20Dataset%20analysis.ipynb)**
 
 This notebook contains:
 - Step-by-step data loading and preprocessing
