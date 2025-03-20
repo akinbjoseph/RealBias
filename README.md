@@ -53,7 +53,7 @@ For a complete walkthrough of our analysis process with code, results, and detai
 
 ## Public Awareness Website
 
-We've created [RealBias](https://akinbjoseph.github.io/oximeterfin/Finalbiaswebsite.html), an interactive website that helps public audiences understand the impact of pulse oximeter bias. The site allows users to see how their demographic factors might affect their risk of receiving inaccurate readings.
+We've created [RealBias](https://akinbjoseph.github.io/RealBias/), an interactive website that helps public audiences understand the impact of pulse oximeter bias. The site allows users to see how their demographic factors might affect their risk of receiving inaccurate readings.
 
 ## Repository Contents
 
